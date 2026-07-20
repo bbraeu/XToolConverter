@@ -142,7 +142,8 @@ export default function Converter() {
 
     const downloadOne = (oCanvas: CanvasResult, fmt: FormatKey) => {
         downloadBlob(blobFor(oCanvas, fmt), fileNameFor(oCanvas, fmt));
-        trackEvent(`download_${fmt}`);
+        // Event names as configured in Google Analytics: DXF_Download, FDS_Download, SVG_Download
+        trackEvent(`${fmt.toUpperCase()}_Download`);
     };
 
     const downloadAll = () => {
