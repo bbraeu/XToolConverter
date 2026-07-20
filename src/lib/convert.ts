@@ -1,5 +1,6 @@
 import { parsePathToPolylines, getOperationFor, buildDxf } from "./dxf";
 import type { Point, Subpath, DxfEntity, Operation } from "./dxf";
+import { buildFds, getFdsModeFor } from "./fds";
 
 const STROKE_WIDTH = 0.6;
 
@@ -319,12 +320,19 @@ const getLocalGeometry = (el: SVGGraphicsElement): Subpath[] => {
     }
 };
 
-const processCanvasDXF = (oJSON: XcsProject, oCanvas: XcsCanvas, aExcluded: string[]): CanvasDxfResult => {
+interface DisplayGeometry {
+    processingType: string | undefined;
+    /** subpaths in canvas coordinates (mm, y grows downwards) */
+    subpaths: Subpath[];
+}
+
+// Render every display into a single off-screen SVG (one <g data-idx> per
+// display, so each rendered element maps back to its processingType) and read
+// the geometry back in canvas (mm) coordinates via getCTM().
+const extractCanvasGeometry = (oJSON: XcsProject, oCanvas: XcsCanvas, aExcluded: string[]): DisplayGeometry[] => {
     const oPTMap = getProcessingTypeMap(oJSON, oCanvas),
         H = isBigCanvas(oJSON, oCanvas) ? 930 : 390;
 
-    // Render every shape into a single off-screen SVG, one <g data-idx> per display
-    // so we can map each rendered element back to its processingType.
     const aParts: string[] = [];
     oCanvas.displays.forEach((oDisplay, i) => {
         const fnConvert = builders[oDisplay.type];
@@ -343,20 +351,19 @@ const processCanvasDXF = (oJSON: XcsProject, oCanvas: XcsCanvas, aExcluded: stri
     svg.innerHTML = aParts.join("");
     document.body.appendChild(svg);
 
-    const aEntities: DxfEntity[] = [];
+    const aResult: DisplayGeometry[] = [];
     try {
         svg.querySelectorAll<SVGGElement>("g[data-idx]").forEach(gEl => {
             const iIdx = parseInt(gEl.getAttribute("data-idx")!, 10),
                 oDisplay = oCanvas.displays[iIdx]!,
-                iColor = getOperationFor(oPTMap.get(oDisplay.id)).color;
+                oGeo: DisplayGeometry = { processingType: oPTMap.get(oDisplay.id), subpaths: [] };
 
             gEl.querySelectorAll<SVGGraphicsElement>("path,rect,ellipse,line,polygon,image").forEach(el => {
                 const m = el.getCTM();
                 if (!m) return;
                 getLocalGeometry(el).forEach(sub => {
                     if (sub.points.length < 2) return;
-                    aEntities.push({
-                        color: iColor,
+                    oGeo.subpaths.push({
                         closed: sub.closed,
                         // Map local coords into canvas (mm) space via the element's CTM.
                         points: sub.points.map(p => ({
@@ -366,10 +373,21 @@ const processCanvasDXF = (oJSON: XcsProject, oCanvas: XcsCanvas, aExcluded: stri
                     });
                 });
             });
+
+            if (oGeo.subpaths.length) aResult.push(oGeo);
         });
     } finally {
         document.body.removeChild(svg);
     }
+
+    return aResult;
+};
+
+const processCanvasDXF = (oJSON: XcsProject, oCanvas: XcsCanvas, aExcluded: string[]): CanvasDxfResult => {
+    const aEntities: DxfEntity[] = extractCanvasGeometry(oJSON, oCanvas, aExcluded).flatMap(oGeo => {
+        const iColor = getOperationFor(oGeo.processingType).color;
+        return oGeo.subpaths.map(sub => ({ color: iColor, closed: sub.closed, points: sub.points }));
+    });
 
     // SVG y grows downward, DXF y grows upward: flip about the bounding box top.
     let maxY = -Infinity;
@@ -390,4 +408,26 @@ export const toDXF = (oJSON: XcsProject): ConvertResult<CanvasDxfResult> => {
         aCanvas: oJSON.canvas.map(c => processCanvasDXF(oJSON, c, aExcluded)),
         aExcluded
     };
+};
+
+export interface CanvasFdsResult {
+    title: string;
+    fds: Blob;
+}
+
+// Falcon Design Space projects keep the operation type per layer natively —
+// unlike DXF, no manual re-assignment is needed after import. Geometry is
+// grouped per display so compound paths keep their holes in fill mode.
+export const toFDS = async (oJSON: XcsProject): Promise<ConvertResult<CanvasFdsResult>> => {
+    const aExcluded: string[] = [];
+    const aCanvas = await Promise.all(oJSON.canvas.map(async oCanvas => ({
+        title: oCanvas.title.replace("{panel}", "Canvas "),
+        fds: await buildFds(
+            extractCanvasGeometry(oJSON, oCanvas, aExcluded).map(oGeo => ({
+                mode: getFdsModeFor(oGeo.processingType),
+                subpaths: oGeo.subpaths
+            }))
+        )
+    })));
+    return { aCanvas, aExcluded };
 };

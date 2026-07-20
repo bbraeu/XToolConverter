@@ -1,11 +1,21 @@
-# XCS → DXF Converter
+# XCS Converter
 
-Free, in-browser converter for xTool Creative Space `.xcs` project files to **DXF** —
+**Live: [bbraeu.github.io/XCStoDXF](https://bbraeu.github.io/XCStoDXF/)**
+
+Free, in-browser converter for xTool Creative Space `.xcs` project files —
 with the laser operation types (surface engraving, line engraving, line cutting)
-preserved as separate colours. Files never leave your computer.
+preserved. Files never leave your computer.
 
 Based on [XCStoSVG by Daniel Nanovski](https://nanovsky.github.io/XCStoSVG/) —
 maintained by [bbraeu](https://github.com/bbraeu/XCStoDXF).
+
+## Output formats
+
+| Format | Operations | Notes |
+| --- | --- | --- |
+| **DXF** (default) | colour-coded (ACI) | AutoCAD R2000, single layer, read by LightBurn / Fusion / any CAM tool |
+| **FDS** | natively assigned layers | Falcon Design Space project — engrave & cut modes pre-assigned on import |
+| **SVG** | colour-coded strokes/fills | Exactly what the preview shows |
 
 ## How it works
 
@@ -15,10 +25,14 @@ maintained by [bbraeu](https://github.com/bbraeu/XCStoDXF).
 - Shapes are rendered into an off-screen SVG (reusing the preview builders),
   positioned via the browser's `getCTM()`, and bezier curves are adaptively
   flattened to polylines at 0.01 mm.
-- The DXF writer emits `LWPOLYLINE`s on a single layer, coloured by operation
-  (ACI): blue = surface engraving, green = line engraving, red = cutting.
-  Colours (not layers) are used because Falcon Design Space rearranges separate
-  DXF layers on import.
+- **DXF**: `LWPOLYLINE`s on a single layer, coloured by operation (ACI):
+  blue = surface engraving, green = line engraving, red = cutting. Colours
+  (not layers) are used because Falcon Design Space rearranges separate DXF
+  layers on import.
+- **FDS**: the native Falcon Design Space container — blocks of
+  `[u32 LE length][u32 BE raw size][zlib]` (Qt `qCompress`) holding JSON with
+  QPainterPath-style geometry. Operation modes: 0 = surface engraving,
+  1 = line engraving, 2 = line cutting (air assist on).
 
 ## Stack
 

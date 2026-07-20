@@ -20,7 +20,7 @@ const features = [
     {
         icon: "M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3",
         title: "Operations preserved",
-        text: "Surface engraving, line engraving and cutting are kept apart via DXF colours — Falcon Design Space, LightBurn & Co. pick them up as separate operation groups."
+        text: "Surface engraving, line engraving and cutting stay separate: as colours in DXF/SVG — or natively assigned layers in a Falcon Design Space (.fds) project, no manual setup after import."
     },
     {
         icon: "M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42",
@@ -37,13 +37,13 @@ const features = [
 const steps = [
     { n: "01", title: "Export from xTool Creative Space", text: "Save your project as a regular .xcs file — that's it, no special export needed." },
     { n: "02", title: "Drop it into the converter", text: "Get an instant colour-coded preview of every canvas: engravings, line work and cuts at a glance." },
-    { n: "03", title: "Import the DXF anywhere", text: "Open it in Falcon Design Space, LightBurn or any CAM software and assign laser settings per colour." }
+    { n: "03", title: "Download in your format", text: "DXF for any CAM software, a native .fds project for Falcon Design Space (operations pre-assigned), or SVG." }
 ];
 ---
 
 <Layout
-    title="XCS to DXF Converter — free, in-browser, operations preserved"
-    description="Free converter for xTool Creative Space .xcs files to DXF. Keeps surface engraving, line engraving and cutting separated by colour. 100% in-browser."
+    title="XCS Converter — xTool .xcs to DXF, Falcon Design Space & SVG"
+    description="Free converter for xTool Creative Space .xcs files to DXF, native Falcon Design Space projects (.fds) and SVG. Keeps surface engraving, line engraving and cutting separated. 100% in-browser."
 >
     <!-- ───────────────────────── Hero ───────────────────────── -->
     <section class="relative flex min-h-[92svh] flex-col items-center justify-center px-4 pt-28 pb-16 text-center">
@@ -59,7 +59,8 @@ const steps = [
         </h1>
 
         <p class="reveal is-visible mt-6 max-w-2xl text-lg text-slate-400 sm:text-xl" style="--reveal-delay: 160ms">
-            Convert xTool Creative Space projects to clean, colour-coded <strong class="text-slate-200">DXF</strong> —
+            Convert xTool Creative Space projects to clean, colour-coded <strong class="text-slate-200">DXF</strong>,
+            native <strong class="text-slate-200">Falcon Design Space</strong> projects or <strong class="text-slate-200">SVG</strong> —
             with surface engraving, line engraving and cutting preserved as separate operations.
         </p>
 
@@ -141,7 +142,8 @@ const steps = [
                 ))}
             </ol>
             <p class="reveal mx-auto mt-8 max-w-2xl text-center text-sm text-slate-500" style="--reveal-delay: 200ms">
-                Note: DXF carries geometry and colours, not laser parameters — assign power &amp; speed per colour once in your laser software.
+                Note: DXF/SVG carry geometry and colours, not laser parameters — assign power &amp; speed per colour once in your laser software.
+                The .fds export pre-assigns the operation per layer; power &amp; speed still come from your material settings.
                 This is a beta-grade tool; heavily skewed shapes may not convert perfectly.
             </p>
         </div>
