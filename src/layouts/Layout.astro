@@ -1,0 +1,95 @@
+---
+import "../styles/global.css";
+
+interface Props {
+    title: string;
+    description: string;
+}
+
+const { title, description } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const isProd = import.meta.env.PROD;
+---
+
+<!doctype html>
+<html lang="en" class="scroll-pt-24">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" href={`${base}favicon.png`} />
+    <title>{isProd ? "" : "[DEV] "}{title}</title>
+
+    {isProd && (
+        <>
+            <!-- Google tag (gtag.js) -->
+            <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-DGDCNJ4PQS"></script>
+            <script is:inline>
+                window.dataLayer = window.dataLayer || [];
+                function gtag() { dataLayer.push(arguments); }
+                gtag("js", new Date());
+                gtag("config", "G-DGDCNJ4PQS");
+            </script>
+        </>
+    )}
+</head>
+<body class="relative min-h-screen antialiased">
+    <!-- Decorative background: blueprint grid + floating gradient blobs -->
+    <div class="pointer-events-none fixed inset-0 -z-10" aria-hidden="true">
+        <div class="bg-blueprint absolute inset-0"></div>
+        <div class="absolute -top-40 -left-40 size-144 rounded-full bg-cyan-500/20 blur-[120px] animate-float-slow"></div>
+        <div class="absolute top-1/3 -right-52 size-160 rounded-full bg-violet-600/20 blur-[130px] animate-float-slower"></div>
+        <div class="absolute -bottom-64 left-1/3 size-152 rounded-full bg-fuchsia-500/10 blur-[140px] animate-float-slow"></div>
+    </div>
+
+    <!-- Nav -->
+    <header class="fixed inset-x-0 top-0 z-50">
+        <nav class="glass mx-auto mt-4 flex w-[min(72rem,calc(100%-2rem))] items-center justify-between rounded-2xl px-5 py-3">
+            <a href={`${base}#top`} class="flex items-center gap-2.5 font-bold text-white">
+                <span class="grid size-8 place-items-center rounded-lg bg-linear-to-br from-cyan-400 to-violet-500 text-sm shadow-lg shadow-violet-500/30">⚡</span>
+                <span>XCS <span class="text-gradient">→ DXF</span></span>
+            </a>
+            <div class="hidden items-center gap-1 sm:flex">
+                <a href={`${base}#converter`} class="rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">Converter</a>
+                <a href={`${base}#features`} class="rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">Features</a>
+                <a href={`${base}#how`} class="rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">How it works</a>
+                <a href={`${base}#credits`} class="rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">Credits</a>
+            </div>
+            <a href="https://github.com/bbraeu/XCStoDXF" target="_blank" rel="noopener"
+               class="rounded-lg border border-white/15 px-3.5 py-2 text-sm font-medium text-slate-200 transition hover:border-cyan-400/50 hover:text-white">
+                GitHub
+            </a>
+        </nav>
+    </header>
+
+    <main id="top">
+        <slot />
+    </main>
+
+    <footer class="border-t border-white/5 py-10">
+        <div class="mx-auto flex w-[min(72rem,calc(100%-2rem))] flex-col items-center gap-3 text-center">
+            <p class="text-sm text-slate-400">
+                Built by <a href="https://github.com/bbraeu" target="_blank" rel="noopener" class="font-medium text-slate-200 underline decoration-cyan-400/50 underline-offset-4 transition hover:text-cyan-300">bbraeu</a>
+                · based on <a href="https://nanovsky.github.io/XCStoSVG/" target="_blank" rel="noopener" class="font-medium text-slate-200 underline decoration-violet-400/50 underline-offset-4 transition hover:text-violet-300">XCStoSVG by Daniel Nanovski</a>
+            </p>
+            <p class="text-xs text-slate-500">Files never leave your computer — conversion runs entirely in your browser.</p>
+        </div>
+    </footer>
+
+    <!-- Scroll reveal -->
+    <script>
+        const io = new IntersectionObserver(
+            entries => {
+                for (const e of entries) {
+                    if (e.isIntersecting) {
+                        e.target.classList.add("is-visible");
+                        io.unobserve(e.target);
+                    }
+                }
+            },
+            { threshold: 0.12 }
+        );
+        document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+    </script>
+</body>
+</html>
