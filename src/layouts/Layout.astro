@@ -13,6 +13,8 @@ const isProd = import.meta.env.PROD;
 // Google Analytics 4 Measurement ID ("G-…"). Leave empty to disable analytics
 // entirely (no script is loaded). Tracked events: convert_file, DXF_Download,
 // FDS_Download, SVG_Download, download_zip — see trackEvent() in lib/util.ts.
+// Uses Google Consent Mode v2 (advanced): gtag.js always loads with all
+// consent defaults denied; the banner decision is applied via consent update.
 const GA_MEASUREMENT_ID = "G-79BWTBS409";
 ---
 
@@ -25,7 +27,36 @@ const GA_MEASUREMENT_ID = "G-79BWTBS409";
     <link rel="icon" href={`${base}favicon.png`} />
     <title>{isProd ? "" : "[DEV] "}{title}</title>
 
-    <!-- Analytics loads only after consent — see the banner script at the end of <body>. -->
+    {isProd && GA_MEASUREMENT_ID && (
+        <>
+            <!-- Google Consent Mode v2 (advanced). Order matters: the consent
+                 defaults MUST be pushed before gtag.js loads, otherwise they
+                 are ignored (see developers.google.com/tag-platform/security/guides/consent). -->
+            <script is:inline define:vars={{ GA_MEASUREMENT_ID }}>
+                window.dataLayer = window.dataLayer || [];
+                function gtag() { dataLayer.push(arguments); }
+                window.gtag = gtag;
+
+                gtag("consent", "default", {
+                    ad_storage: "denied",
+                    ad_user_data: "denied",
+                    ad_personalization: "denied",
+                    analytics_storage: "denied"
+                });
+                gtag("set", "ads_data_redaction", true);
+
+                // Re-apply a previously stored decision before config so the
+                // first page_view already runs with the right consent state.
+                if (localStorage.getItem("analytics-consent") === "granted") {
+                    gtag("consent", "update", { analytics_storage: "granted" });
+                }
+
+                gtag("js", new Date());
+                gtag("config", GA_MEASUREMENT_ID);
+            </script>
+            <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}></script>
+        </>
+    )}
 </head>
 <body class="relative min-h-screen antialiased">
     <!-- Decorative background: blueprint grid + floating gradient blobs -->
@@ -75,15 +106,16 @@ const GA_MEASUREMENT_ID = "G-79BWTBS409";
 
     {isProd && GA_MEASUREMENT_ID && (
         <>
-            <!-- Consent banner: analytics loads only after an explicit opt-in -->
+            <!-- Consent banner: drives gtag('consent', 'update') — Consent Mode v2 -->
             <div id="consent-banner" hidden
                  class="glass fixed inset-x-4 bottom-4 z-60 mx-auto max-w-xl rounded-2xl p-5 shadow-2xl shadow-black/50"
                  role="dialog" aria-live="polite" aria-label="Cookie consent">
                 <p class="text-sm leading-relaxed text-slate-300">
                     <span class="font-semibold text-white">Analytics?</span>{" "}
                     We'd like to use Google Analytics to understand how the converter is used
-                    (page views, which formats get downloaded). This sets cookies. No tracking
-                    happens unless you agree — your files are never involved either way.
+                    (page views, which formats get downloaded). Only if you agree are analytics
+                    cookies set; if you decline, Google receives at most anonymous, cookieless
+                    signals (Google Consent Mode). Your files are never involved either way.
                 </p>
                 <div class="mt-4 flex flex-wrap gap-3">
                     <button id="consent-accept"
@@ -97,43 +129,38 @@ const GA_MEASUREMENT_ID = "G-79BWTBS409";
                 </div>
             </div>
 
-            <script is:inline define:vars={{ GA_MEASUREMENT_ID }}>
+            <script is:inline>
                 (function () {
                     var KEY = "analytics-consent";
                     var banner = document.getElementById("consent-banner");
 
-                    function loadAnalytics() {
-                        var s = document.createElement("script");
-                        s.async = true;
-                        s.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_MEASUREMENT_ID;
-                        document.head.appendChild(s);
-                        window.dataLayer = window.dataLayer || [];
-                        function gtag() { dataLayer.push(arguments); }
-                        window.gtag = gtag;
-                        gtag("js", new Date());
-                        gtag("config", GA_MEASUREMENT_ID);
-                    }
-
                     function choose(value) {
                         localStorage.setItem(KEY, value);
                         banner.hidden = true;
-                        if (value === "granted") loadAnalytics();
+                        window.gtag("consent", "update", {
+                            analytics_storage: value === "granted" ? "granted" : "denied"
+                        });
                     }
 
                     var stored = localStorage.getItem(KEY);
-                    if (stored === "granted") loadAnalytics();
-                    else if (stored !== "denied") banner.hidden = false;
+                    if (stored !== "granted" && stored !== "denied") banner.hidden = false;
 
                     document.getElementById("consent-accept").addEventListener("click", function () { choose("granted"); });
                     document.getElementById("consent-decline").addEventListener("click", function () { choose("denied"); });
 
-                    // Footer link: revisit the decision. Revoking after a prior opt-in
-                    // reloads so the already-loaded gtag script is gone.
+                    // Footer link: revisit the decision. Revoking downgrades consent
+                    // right away and drops the GA cookies so the client id is forgotten.
                     document.getElementById("cookie-settings").addEventListener("click", function () {
-                        var had = localStorage.getItem(KEY);
                         localStorage.removeItem(KEY);
-                        if (had === "granted") location.reload();
-                        else banner.hidden = false;
+                        window.gtag("consent", "update", { analytics_storage: "denied" });
+                        document.cookie.split(";").forEach(function (c) {
+                            var name = c.split("=")[0].trim();
+                            if (name.indexOf("_ga") === 0) {
+                                document.cookie = name + "=; Max-Age=0; path=/; domain=" + location.hostname;
+                                document.cookie = name + "=; Max-Age=0; path=/";
+                            }
+                        });
+                        banner.hidden = false;
                     });
                 })();
             </script>
