@@ -6,7 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 // https://astro.build/config
 export default defineConfig({
     site: "https://bbraeu.github.io",
-    base: "/XCStoDXF/",
+    base: "/XToolConverter/",
     integrations: [react()],
     vite: {
         plugins: [tailwindcss()]

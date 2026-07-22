@@ -1,13 +1,22 @@
-# XCS Converter
+# XToolConverter
 
-**Live: [bbraeu.github.io/XCStoDXF](https://bbraeu.github.io/XCStoDXF/)**
+**Live: [bbraeu.github.io/XToolConverter](https://bbraeu.github.io/XToolConverter/)**
 
-Free, in-browser converter for xTool Creative Space `.xcs` project files —
-with the laser operation types (surface engraving, line engraving, line cutting)
-preserved. Files never leave your computer.
+Free, in-browser converter for xTool project files — both xTool Creative Space
+`.xcs` and xTool Studio `.xs` — with the laser operation types (surface
+engraving, line engraving, line cutting) preserved. Files never leave your
+computer.
 
-Based on [XCStoSVG by Daniel Nanovski](https://nanovsky.github.io/XCStoSVG/) —
-maintained by [bbraeu](https://github.com/bbraeu/XCStoDXF).
+Successor of [XCStoDXF](https://github.com/bbraeu/XCStoDXF), based on
+[XCStoSVG by Daniel Nanovski](https://nanovsky.github.io/XCStoSVG/) —
+maintained by [bbraeu](https://github.com/bbraeu).
+
+## Input formats
+
+| Format | App | Notes |
+| --- | --- | --- |
+| **.xcs** | xTool Creative Space | plain JSON project file |
+| **.xs** | xTool Studio | ZIP archive (`xcs-workspace-v2`) holding the same model split into parts |
 
 ## Output formats
 
@@ -22,6 +31,13 @@ maintained by [bbraeu](https://github.com/bbraeu/XCStoDXF).
 - `.xcs` files are plain JSON. Geometry lives in `canvas[].displays[]`; the
   operation type per shape lives in `device.data.value` (a serialised Map of
   `displayId → processingType`).
+- `.xs` files (xTool Studio) are ZIP archives with the same model split into
+  parts: `canvases/<id>/displays-<n>.json` (geometry, chunked),
+  `vectors/<bucket>/data-<n>.json` (deduplicated `dPath` strings referenced via
+  `vectorRef`), `profiles.json` (profile → `processingType`) and
+  `devices/device-<id>.json` (bindings: profile → display ids).
+  `src/lib/xs.ts` reassembles them into the `.xcs` shape, so the rest of the
+  pipeline is shared.
 - Shapes are rendered into an off-screen SVG (reusing the preview builders),
   positioned via the browser's `getCTM()`, and bezier curves are adaptively
   flattened to polylines at 0.01 mm.

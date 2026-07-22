@@ -1,5 +1,5 @@
 {
-  "name": "xcs-converter",
+  "name": "xtoolconverter",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "@astrojs/react": "^6.0.1",
     "astro": "^7.1.1",
     "client-zip": "^2.5.0",
+    "fflate": "^0.8.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

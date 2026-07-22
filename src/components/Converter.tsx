@@ -3,6 +3,7 @@ import { toSVG, toDXF, toFDS, getUsedOperations } from "../lib/convert";
 import type { XcsProject } from "../lib/convert";
 import type { Operation } from "../lib/dxf";
 import { downloadBlob, downloadAsZip, trackEvent } from "../lib/util";
+import { isXsArchive, parseXs } from "../lib/xs";
 
 export const FORMATS = {
     dxf: {
@@ -76,7 +77,12 @@ export default function Converter() {
             // Yield a frame so the busy state paints before the heavy work.
             await new Promise(r => setTimeout(r, 30));
 
-            const oJSON = JSON.parse(await file.text()) as XcsProject;
+            // .xcs is plain JSON; .xs (xTool Studio) is a ZIP archive holding
+            // the same model split into parts — detect by magic bytes, not name.
+            const buf = await file.arrayBuffer();
+            const oJSON: XcsProject = isXsArchive(buf)
+                ? parseXs(buf)
+                : JSON.parse(new TextDecoder().decode(buf)) as XcsProject;
             if (!Array.isArray(oJSON.canvas)) {
                 throw new Error("not an xcs project");
             }
@@ -93,14 +99,14 @@ export default function Converter() {
                     svg: oCanvas.svg,
                     dxf: oDxf.aCanvas[i]!.dxf,
                     fds: oFds.aCanvas[i]!.fds,
-                    baseName: file.name.replace(/\.xcs$/i, ""),
+                    baseName: file.name.replace(/\.(xcs|xs)$/i, ""),
                     operations: getUsedOperations(oJSON, oJSON.canvas[i]!)
                 }))
             });
             setTab(0);
             trackEvent("convert_file");
         } catch {
-            setError("This does not look like a valid .xcs file. Please select a project file saved by xTool Creative Space.");
+            setError("This does not look like a valid .xcs or .xs file. Please select a project file saved by xTool Creative Space or xTool Studio.");
         } finally {
             setBusy(false);
         }
@@ -150,7 +156,7 @@ export default function Converter() {
         if (!state) return;
         void downloadAsZip(
             state.canvases.map(c => ({ blob: blobFor(c, format), file: fileNameFor(c, format) })),
-            state.sourceName.replace(/\.xcs$/i, "") + ".zip"
+            state.sourceName.replace(/\.(xcs|xs)$/i, "") + ".zip"
         );
         trackEvent("download_zip");
     };
@@ -270,7 +276,7 @@ export default function Converter() {
             <div
                 role="button"
                 tabIndex={0}
-                aria-label="Select or drop an .xcs file"
+                aria-label="Select or drop an .xcs or .xs file"
                 onClick={() => inputRef.current?.click()}
                 onKeyDown={e => { if (e.key === "Enter" || e.key === " ") inputRef.current?.click(); }}
                 onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -282,7 +288,7 @@ export default function Converter() {
                         : "border-white/15 bg-white/[0.03] hover:border-cyan-400/60 hover:bg-white/[0.05] focus-visible:border-cyan-400/60"}`}
             >
                 <div className="laser-beam" aria-hidden="true" />
-                <input ref={inputRef} type="file" accept=".xcs" className="hidden" onChange={onPick} />
+                <input ref={inputRef} type="file" accept=".xcs,.xs" className="hidden" onChange={onPick} />
 
                 <div className="pointer-events-none relative z-10 flex flex-col items-center gap-3">
                     <div className="grid size-16 place-items-center rounded-2xl bg-linear-to-br from-cyan-400/20 to-violet-500/20 ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-110">
@@ -291,7 +297,7 @@ export default function Converter() {
                         </svg>
                     </div>
                     <p className="text-lg font-semibold text-white">
-                        {busy ? "Converting…" : "Drop your .xcs file here"}
+                        {busy ? "Converting…" : "Drop your .xcs or .xs file here"}
                     </p>
                     <p className="text-sm text-slate-400">
                         {busy ? "flattening curves to 0.01 mm" : "or click to browse — conversion runs 100% in your browser"}
