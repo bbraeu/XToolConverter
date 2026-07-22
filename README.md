@@ -63,5 +63,3 @@ pnpm dev       # local dev server
 pnpm check     # typecheck (astro check)
 pnpm build     # production build to dist/
 ```
-
-Sample projects for testing live in `template/`.
